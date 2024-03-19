@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 """
-Created on Fri Dec  7 15:14:24 2018
+created on 2024-3
 
-@author: initial-h
+@author: zhenglu
 """
 
 import numpy as np
@@ -10,48 +10,42 @@ from collections import deque
 from GUI_v1_4 import GUI
 
 class Board(object):
-    '''
-    board for the game
-    '''
-    def __init__(self, **kwargs):
+     
+    def __init__(self, **kwargs):   # **kwargs表示输入的变量不定
         self.width = int(kwargs.get('width', 11))
         self.height = int(kwargs.get('height', 11))
-        self.states = {}
         self.n_in_row = int(kwargs.get('n_in_row', 5))
-        # need how many pieces in a row to win
+        self.states = {}
         self.players = [1, 2]
         # player1 and player2
 
         self.feature_planes = 8
-        # how many binary feature planes we use,
-        # in alphago zero is 17 and the input to the neural network is 19x19x17
-        # here is a (self.feature_planes+1) x self.width x self.height binary feature planes,
-        # the self.feature_planes is the number of history features
-        # the additional plane is the color feature that indicate the current player
-        # for example, in 11x11 board, is 11x11x9,8 for history features and 1 for current player
+        # 在AlphaGo Zero中，使用17个特征平面，而这里设置为8个。
+        # 特征平面是用于表示棋局状态的二进制平面，用于输入到神经网络中。
+        # 这里的8个特征平面包括历史特征和当前玩家的颜色特征。
         self.states_sequence = deque(maxlen=self.feature_planes)
         self.states_sequence.extendleft([[-1,-1]] * self.feature_planes)
-        #use the deque to store last 8 moves
-        # fill in with [-1,-1] when one game start to indicate no move
+        #  创建一个deque对象，用于存储最近8次移动的位置
+        #  初始时，队列中填充了self.feature_planes个[-1, -1]元素，表示游戏开始时没有移动
 
     def init_board(self, start_player=0):
         '''
-        init the board and set some variables
+        初始化棋盘状态和一些变量
         '''
-        if self.width < self.n_in_row or self.height < self.n_in_row:
-            raise Exception('board width and height can not be '
-                            'less than {}'.format(self.n_in_row))
-        self.current_player = self.players[start_player]  # start player
+        # if self.width < self.n_in_row or self.height < self.n_in_row:
+        #     raise Exception('board width and height can not be '
+        #                     'less than {}'.format(self.n_in_row))
+
+        self.current_player = self.players[start_player]  # 先手
         self.availables = list(range(self.width * self.height))
-        # keep available moves in a list
-        # once a move has been played, remove it right away
+        # 初始化所有的位置，开始时所有的位置都可以用
         self.states = {}
         self.last_move = -1
 
         self.states_sequence = deque(maxlen=self.feature_planes)
         self.states_sequence.extendleft([[-1, -1]] * self.feature_planes)
 
-    def move_to_location(self, move):
+    def move_to_location(self, move):  # 将一维转成二维
         '''
         transfer move number to coordinate
 
@@ -65,16 +59,16 @@ class Board(object):
         w = move % self.width
         return [h, w]
 
-    def location_to_move(self, location):
+    def location_to_move(self, location): # 二维转一维
         '''
         transfer coordinate to move number
         '''
-        if len(location) != 2:
+        if len(location) != 2: # 没有两个值
             return -1
         h = location[0]
         w = location[1]
         move = h * self.width + w
-        if move not in range(self.width * self.height):
+        if move not in range(self.width * self.height): # 超出范围
             return -1
         return move
 
@@ -139,12 +133,12 @@ class Board(object):
         self.states_sequence.appendleft([move,self.current_player])
         # save the last some moves in deque，so as to construct the binary feature planes
         self.availables.remove(move)
-        #remove the played move from self.availables
+        # 从棋盘中移除
         self.current_player = (
             self.players[0] if self.current_player == self.players[1]
             else self.players[1]
         )
-        # change the current player
+        # 切换玩家
         self.last_move = move
 
     def has_a_winner(self):
@@ -190,22 +184,14 @@ class Board(object):
         return False, -1
 
     def game_end(self):
-        '''
-        Check whether the game is end
-        '''
         end, winner = self.has_a_winner()
         if end:
-            # if one win,return the winner
             return True, winner
         elif not len(self.availables):
-            # if the board has been filled and no one win ,then return -1
             return True, -1
         return False, -1
 
     def get_current_player(self):
-        '''
-        return current player
-        '''
         return self.current_player
 
 class Game(object):

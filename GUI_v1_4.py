@@ -14,7 +14,7 @@ introduction:
 """
 import pygame
 from pygame.locals import *
-
+from pygame.locals import QUIT, MOUSEBUTTONDOWN, MOUSEMOTION
 
 class GUI:
 
@@ -56,7 +56,7 @@ class GUI:
         self.ScreenSize = (self.BoardSize * self.UnitSize + 2 * self.UnitSize,
                            self.BoardSize * self.UnitSize + 3 * self.UnitSize)
         self.screen = pygame.display.set_mode(self.ScreenSize, 0, 32)
-        pygame.display.set_caption('AlphaZero_Gomoku')
+        pygame.display.set_caption('AlphaZero')
 
         # button areas
         self.areas['SwitchPlayer'] = Rect(self.ScreenSize[0]/2-self.UnitSize*1.5, self.ScreenSize[1] - self.UnitSize, self.UnitSize*3, self.UnitSize)
