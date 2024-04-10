@@ -1,11 +1,5 @@
 # -*- coding: utf-8 -*-
-"""
-Created on Sat Dec  8 15:31:39 2018
-
-@author: initial-h
-"""
-
-
+ 
 from __future__ import print_function
 import random
 import numpy as np
@@ -15,7 +9,7 @@ from collections import defaultdict, deque
 from game_board import Board,Game
 from mcts_pure import MCTSPlayer as MCTS_Pure
 from mcts_alphaZero import MCTSPlayer
-from policy_value_net_tensorlayer import PolicyValueNet
+from policy_value_net import PolicyValueNet
 
 class TrainPipeline():
     def __init__(self, init_model=None,transfer_model=None):

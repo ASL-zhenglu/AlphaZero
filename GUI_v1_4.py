@@ -1,9 +1,5 @@
 # -*- coding: utf-8 -*-
 """
-Created on Wed Dec 12 15:32:27 2018
-
-@author: Tokarev-TT-33
-
 introduction:
     This is a UI for Gomoku game which does not contain the rule code.
 

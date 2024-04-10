@@ -1,15 +1,10 @@
 # -*- coding: utf-8 -*-
-"""
-Created on Sat Dec  8 13:51:53 2018
-
-@author: initial-h
-"""
-
+ 
 from __future__ import print_function
 from game_board import Board, Game
 from mcts_pure import MCTSPlayer as MCTS_pure
 from mcts_alphaZero import MCTSPlayer
-from policy_value_net_tensorlayer import PolicyValueNet
+from policy_value_net import PolicyValueNet
 import time
 from os import path
 import os

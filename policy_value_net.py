@@ -1,9 +1,5 @@
 # -*- coding: utf-8 -*-
-"""
-Created on Sat Dec  8 13:02:14 2018
-
-@author: initial-h
-"""
+ 
 
 import tensorflow as tf
 import tensorlayer as tl

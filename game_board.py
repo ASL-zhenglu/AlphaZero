@@ -1,9 +1,4 @@
 # -*- coding: utf-8 -*-
-"""
-created on 2024-3
-
-@author: zhenglu
-"""
 
 import numpy as np
 from collections import deque
@@ -39,16 +34,14 @@ class Board(object):
         self.current_player = self.players[start_player]  # 先手
         self.availables = list(range(self.width * self.height))
         # 初始化所有的位置，开始时所有的位置都可以用
-        self.states = {}
-        self.last_move = -1
+        self.states = {} # 状态
+        self.last_move = -1 # 最后一步
 
         self.states_sequence = deque(maxlen=self.feature_planes)
         self.states_sequence.extendleft([[-1, -1]] * self.feature_planes)
 
     def move_to_location(self, move):  # 将一维转成二维
         '''
-        transfer move number to coordinate
-
         3*3 board's moves like:
         6 7 8
         3 4 5
@@ -74,8 +67,8 @@ class Board(object):
 
     def current_state(self):
         '''
-        return the board state from the perspective of the current player.
-        state shape: (self.feature_planes+1) x width x height
+        从当前玩家返回
+        状态形式: (self.feature_planes+1) x width x height
         '''
         square_state = np.zeros((self.feature_planes+1, self.width, self.height))
         if self.states:

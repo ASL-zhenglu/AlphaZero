@@ -1,8 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-Created on Fri Dec  7 22:05:17 2018
-
-@author: initial
+蒙特卡罗树搜索AlphaGo Zero形式，使用策略值网络引导树搜索和评估叶节点
 """
 
 
@@ -22,7 +20,9 @@ class TreeNode(object):
     Each node keeps track of its own value Q, prior probability P, and
     its visit-count-adjusted prior score u.
     '''
-
+    """MCTS树中的节点。
+    每个节点跟踪其自身的值Q，先验概率P及其访问次数调整的先前得分u。
+    """
     def __init__(self, parent, prior_p):
         self._parent = parent
         self._children = {}  # a map from action to TreeNode
@@ -37,6 +37,9 @@ class TreeNode(object):
         action_priors: a list of tuples of actions and their prior probability
             according to the policy function.
         '''
+        """通过创建新子项来展开树。
+        action_priors：一系列动作元组及其先验概率根据策略函数.
+        """
         # when train by self-play, add dirichlet noises in each node
 
         # should note it's different from paper that only add noises in root node
@@ -66,6 +69,9 @@ class TreeNode(object):
         Select action among children that gives maximum action value Q plus bonus u(P).
         Return: A tuple of (action, next_node)
         '''
+        """在子节点中选择能够提供最大行动价值Q的行动加上奖金u（P）。
+        return：（action，next_node）的元组
+        """
         return max(self._children.items(),
                    key=lambda act_node: act_node[1].get_value(c_puct))
 
@@ -75,9 +81,14 @@ class TreeNode(object):
         leaf_value: the value of subtree evaluation from the current player's
             perspective.
         '''
+        """从叶节点评估中更新节点值
+        leaf_value: 这个子树的评估值来自从当前玩家的视角
+        """
         self._n_visits += 1
+        # 统计访问次数
         # update visit count
         self._Q += 1.0*(leaf_value - self._Q) / self._n_visits
+        # 更新Q值， 取对于所有访问次数的平均数
         # Update Q, a running average of values for all visits.
         # there is just: (v-Q)/(n+1)+Q = (v-Q+(n+1)*Q)/(n+1)=(v+n*Q)/(n+1)
 
@@ -86,6 +97,9 @@ class TreeNode(object):
         Like a call to update(), but applied recursively for all ancestors.
         '''
         # If it is not root, this node's parent should be updated first.
+        """就像调用update（）一样，但是对所有祖先进行递归应用。
+        """
+        # 如果它不是根节点，则应首先更新此节点的父节点。
         if self._parent:
             self._parent.update_recursive(-leaf_value)
             # every step for revursive update,
@@ -100,6 +114,10 @@ class TreeNode(object):
         c_puct: a number in (0, inf) controlling the relative impact of
             value Q, and prior probability P, on this node's score.
         '''
+        """计算并返回此节点的值。它是叶评估Q和此节点的先验的组合
+        调整了访问次数，u。
+        c_puct：控制相对影响的（0，inf）中的数字，该节点得分的值Q和先验概率P.
+        """
         self._u = (c_puct * self._P *
                    np.sqrt(self._parent._n_visits) / (1 + self._n_visits))
         return self._Q + self._u
@@ -108,6 +126,7 @@ class TreeNode(object):
         '''
         check if leaf node (i.e. no nodes below this have been expanded).
         '''
+        """检查叶节点（即没有扩展的节点）。"""
         return self._children == {}
 
     def is_root(self):
@@ -121,6 +140,7 @@ class MCTS(object):
     '''
     An implementation of Monte Carlo Tree Search.
     '''
+    """对蒙特卡罗树搜索的一个简单实现"""
     def __init__(self, policy_value_fn,action_fc,evaluation_fc, is_selfplay,c_puct=5, n_playout=400):
         '''
         policy_value_fn: a function that takes in a board state and outputs
@@ -131,6 +151,12 @@ class MCTS(object):
             converges to the maximum-value policy. A higher value means
             relying on the prior more.
         '''
+        """
+        policy_value_fn：一个接收板状态和输出的函数（动作，概率）元组列表以及[-1,1]中的分数
+        （即来自当前的最终比赛得分的预期值玩家的观点）对于当前的玩家。
+        c_puct：（0，inf）中的数字，用于控制探索的速度收敛于最大值政策。 更高的价值意味着
+        依靠先前的更多。
+        """
         self._root = TreeNode(None, 1.0)
         # root node do not have parent ,and sure with prior probability 1
 
@@ -149,12 +175,17 @@ class MCTS(object):
         the leaf and propagating it back through its parents.
         State is modified in-place, so a copy must be provided.
         '''
+        """从根到叶子运行单个播出，获取值
+         叶子并通过它的父母传播回来。
+         State已就地修改，因此必须提供副本。
+        """
         node = self._root
         # print('============node visits:',node._n_visits)
         # deep = 0
         while(1):
             if node.is_leaf():
                 break
+            # 贪心算法选择下一步行动
             # Greedily select next move.
             action, node = node.select(self._c_puct)
             # print('move in tree...',action)
@@ -165,13 +196,15 @@ class MCTS(object):
         # Evaluate the leaf using a network which outputs a list of
         # (action, probability) tuples p and also a score v in [-1, 1]
         # for the current player.
+        # 使用网络评估叶子，该网络输出（动作，概率）元组p的列表以及当前玩家的[-1,1]中的分数v。
         action_probs, leaf_value = self._policy_value_fn(state,self._action_fc,self._evaluation_fc)
-        # Check for end of game.
+        # 查看游戏是否结束
         end, winner = state.game_end()
         if not end:
             # print('expand move:',state.width*state.height-len(state.availables),node._n_visits)
             node.expand(action_probs,add_noise=self._is_selfplay)
         else:
+            # 对于结束状态,将叶子节点的值换成"true"
             # for end state，return the "true" leaf_value
             # print('end!!!',node._n_visits)
             if winner == -1:  # tie
@@ -180,7 +213,7 @@ class MCTS(object):
                 leaf_value = (
                     1.0 if winner == state.get_current_player() else -1.0
                 )
-
+        # 在本次遍历中更新节点的值和访问次数
         # Update value and visit count of nodes in this traversal.
         node.update_recursive(-leaf_value)
         # no rollout here
@@ -191,6 +224,10 @@ class MCTS(object):
         their corresponding visiting times.
         state: the current game state
         '''
+        """按顺序运行所有播出并返回可用的操作及其相应的概率。
+        state: 当前游戏的状态
+        temp: 介于(0,1]之间的临时参数控制探索的概率
+        """
         for n in range(self._n_playout):
             # print('playout:',n)
             state_copy = copy.deepcopy(state)
@@ -208,6 +245,8 @@ class MCTS(object):
         Step forward in the tree, keeping everything we already know
         about the subtree.
         '''
+        """在当前的树上向前一步，保持我们已经知道的关于子树的一切.
+        """
         if last_move in self._root._children:
             self._root = self._root._children[last_move]
             self._root._parent = None
@@ -218,9 +257,8 @@ class MCTS(object):
         return "MCTS"
 
 class MCTSPlayer(object):
-    '''
-    AI player based on MCTS
-    '''
+     
+    """基于MCTS的AI玩家"""
     def __init__(self, policy_value_function,action_fc,evaluation_fc,c_puct=5, n_playout=400, is_selfplay=0):
         '''
         init some parameters
@@ -258,6 +296,7 @@ class MCTSPlayer(object):
         do not discard all the tree and retain the useful part
         '''
         sensible_moves = board.availables
+        # 像alphaGo Zero论文一样使用MCTS算法返回的pi向量
         # the pi vector returned by MCTS as in the alphaGo Zero paper
         move_probs = np.zeros(board.width * board.height)
         if len(sensible_moves) > 0:
@@ -307,7 +346,7 @@ class MCTSPlayer(object):
             return move,move_probs
 
         else:
-            print("WARNING: the board is full")
+            print("棋盘已满")
 
     def __str__(self):
         return "Alpha {}".format(self.player)
