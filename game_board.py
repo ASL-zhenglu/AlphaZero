@@ -321,10 +321,10 @@ class Game(object):
             move, move_probs = player.get_action(self.board,
                                                  is_selfplay=True,
                                                  print_probs_value=False)
-            # store the data
+            # 存储数据
             states.append(self.board.current_state())
             mcts_probs.append(move_probs)
-            current_players.append(self.board.current_player)
+            current_players.append(self.board.current_player) 
             
             self.board.do_move(move)
             if is_shown:
