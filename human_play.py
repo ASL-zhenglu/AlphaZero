@@ -52,7 +52,6 @@ def run(start_player=0,is_shown=1): # 人和电脑打
 
     best_policy = PolicyValueNet(board_width=width,board_height=height,block=19,init_model=model_file,cuda=True)
 
- 
     alpha_zero_player = MCTSPlayer(policy_value_function=best_policy.policy_value_fn_random,
                                    action_fc=best_policy.action_fc_test,
                                    evaluation_fc=best_policy.evaluation_fc2_test,
