@@ -304,6 +304,7 @@ class Game(object):
                     if winner != -1:
                         print("Game end. Winner is player", winner)
                         UI.add_score(winner)
+                        UI.show_message_box(winner)
                     else:
                         print("Game end. Tie")
                     print(UI.score)

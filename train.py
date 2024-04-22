@@ -10,6 +10,15 @@ from game_board import Board,Game
 from mcts_pure import MCTSPlayer as MCTS_Pure
 from mcts_alphaZero import MCTSPlayer
 from policy_value_net import PolicyValueNet
+import pandas as pd
+from pandas import Series, DataFrame
+import matplotlib.pyplot as plt
+import seaborn as sns
+
+data_train = {"batch": [], "value": [], "criterion": []}
+data_eval = {"batch": [], "win_ratio": []}
+
+
 
 class TrainPipeline():
     def __init__(self, init_model=None,transfer_model=None):
@@ -220,6 +229,11 @@ class TrainPipeline():
                     train_data_start_time = time.time()
                     loss, entropy = self.policy_update()
                     train_data_time += time.time()-train_data_start_time
+    
+                    
+                    data_train["batch"] += ([i+1, i+1])
+                    data_train["value"] += [float(loss), float(entropy)]
+                    data_train["criterion"] += ["loss", "entropy"]
 
                     # 输出
                     print('now time : {}'.format((time.time() - start_time) / 3600))
@@ -236,6 +250,10 @@ class TrainPipeline():
 
                         # 评估当前模型
                         win_ratio = self.policy_evaluate(n_games=10)   
+
+                        data_eval["batch"].append(i+1)
+                        data_eval["win_ratio"].append(win_ratio)
+
                         evaluate_time += time.time()-evaluate_start_time
                         if win_ratio > self.best_win_ratio:
                            
@@ -255,8 +273,35 @@ class TrainPipeline():
         except KeyboardInterrupt: 
             print('\n\rquit')
 
+def draw(data_train, data_eval):
+    data_train = DataFrame(data_train)
+    data_eval = DataFrame(data_eval)
+
+    plt.figure(figsize=(10, 5))
+
+    # 绘制训练数据的图表
+    plt.subplot(1, 2, 1) # 一行两列，第一列
+    ax = sns.lineplot(x="batch", y="value", hue="criterion", style="criterion", data=data_train)
+    plt.xlabel("batch", fontsize=12)
+    plt.ylabel("value", fontsize=12)
+    plt.title("AlphaZero Gomoku Performance (train)", fontsize=14)
+
+    # 绘制评估数据的图表
+    plt.subplot(1, 2, 2)
+    ax = sns.lineplot(x="batch", y="win_ratio", data=data_eval)
+    plt.xlabel("batch", fontsize=12)
+    plt.ylabel("win ratio", fontsize=12)
+    plt.title("AlphaZero Gomoku Performance (eval)", fontsize=14)
+
+    plt.tight_layout()  # 调整子图的布局，防止重叠
+    plt.show()
+
+
+
 if __name__ == '__main__':
     training_pipeline = TrainPipeline(init_model='model/best_policy.model',transfer_model=None)
     # training_pipeline = TrainPipeline(init_model=None, transfer_model='transfer_model/best_policy.model')
     # training_pipeline = TrainPipeline()
     training_pipeline.run()
+
+    draw(data_train, data_eval)

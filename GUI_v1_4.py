@@ -3,7 +3,7 @@
 import pygame
 from pygame.locals import *
 from pygame.locals import QUIT, MOUSEBUTTONDOWN, MOUSEMOTION
-
+import time
 class GUI:
 
     def __init__(self, board_size=11):
@@ -28,6 +28,25 @@ class GUI:
          
         self.restart_game(False) # 重置游戏
         self.reset_score() # 重置得分
+
+    def show_message_box(self, player):
+        font = pygame.font.Font(None, 36)
+        message = f"player {player} win"
+        text = font.render(message, True, (0, 0, 0))
+        text_rect = text.get_rect(center=(self.screen.get_width() / 2, self.screen.get_height() / 2))
+
+        start_time = time.time()
+        display_time = 5  # 显示时间（秒）
+
+        while time.time() - start_time < display_time:
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:  # 检测到退出事件时退出循环
+                    return
+
+            # 在原本界面上绘制提示框
+            self.screen.blit(text, text_rect)
+            pygame.display.update(text_rect)  # 只更新提示框的区域，不覆盖其他部分
+
 
     def reset(self, bs): # bs： boardsize, 功能:重置棋盘
  
