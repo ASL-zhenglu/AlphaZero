@@ -14,28 +14,20 @@ def softmax(x):
     return probs
 
 class TreeNode(object):
-    '''
-    A node in the MCTS tree.
-    Each node keeps track of its own value Q, prior probability P, and
-    its visit-count-adjusted prior score u.
-    '''
+  
     """MCTS树中的节点。
     每个节点跟踪其自身的值Q，先验概率P及其访问次数调整的先前得分u。
     """
     def __init__(self, parent, prior_p):
         self._parent = parent
-        self._children = {}  # a map from action to TreeNode
+        self._children = {}   
         self._n_visits = 0
         self._Q = 0
         self._u = 0
-        self._P = prior_p # its the prior probability that action's taken to get this node
+        self._P = prior_p  
 
     def expand(self, action_priors,add_noise):
-        '''
-        Expand tree by creating new children.
-        action_priors: a list of tuples of actions and their prior probability
-            according to the policy function.
-        '''
+ 
         """通过创建新子项来展开树。
         action_priors：一系列动作元组及其先验概率根据策略函数.
         """
@@ -64,10 +56,7 @@ class TreeNode(object):
                     self._children[action] = TreeNode(self, prob)
 
     def select(self, c_puct):
-        '''
-        Select action among children that gives maximum action value Q plus bonus u(P).
-        Return: A tuple of (action, next_node)
-        '''
+ 
         """在子节点中选择能够提供最大行动价值Q的行动加上奖金u（P）。
         return：（action，next_node）的元组
         """
@@ -75,11 +64,7 @@ class TreeNode(object):
                    key=lambda act_node: act_node[1].get_value(c_puct))
 
     def update(self, leaf_value):
-        '''
-        Update node values from leaf evaluation.
-        leaf_value: the value of subtree evaluation from the current player's
-            perspective.
-        '''
+    
         """从叶节点评估中更新节点值
         leaf_value: 这个子树的评估值来自从当前玩家的视角
         """
@@ -92,27 +77,17 @@ class TreeNode(object):
         # there is just: (v-Q)/(n+1)+Q = (v-Q+(n+1)*Q)/(n+1)=(v+n*Q)/(n+1)
 
     def update_recursive(self, leaf_value):
-        '''
-        Like a call to update(), but applied recursively for all ancestors.
-        '''
-        # If it is not root, this node's parent should be updated first.
+ 
         """就像调用update（）一样，但是对所有祖先进行递归应用。
         """
         # 如果它不是根节点，则应首先更新此节点的父节点。
         if self._parent:
             self._parent.update_recursive(-leaf_value)
-            # every step for revursive update,
-            # we should change the perspective by the way of taking the negative
+ 
         self.update(leaf_value)
 
     def get_value(self, c_puct):
-        '''
-        Calculate and return the value for this node.
-        It is a combination of leaf evaluations Q, and this node's prior
-        adjusted for its visit count, u.
-        c_puct: a number in (0, inf) controlling the relative impact of
-            value Q, and prior probability P, on this node's score.
-        '''
+         
         """计算并返回此节点的值。它是叶评估Q和此节点的先验的组合
         调整了访问次数，u。
         c_puct：控制相对影响的（0，inf）中的数字，该节点得分的值Q和先验概率P.
@@ -136,20 +111,10 @@ class TreeNode(object):
 
 
 class MCTS(object):
-    '''
-    An implementation of Monte Carlo Tree Search.
-    '''
+ 
     """对蒙特卡罗树搜索的一个简单实现"""
     def __init__(self, policy_value_fn,action_fc,evaluation_fc, is_selfplay,c_puct=5, n_playout=400):
-        '''
-        policy_value_fn: a function that takes in a board state and outputs
-            a list of (action, probability) tuples and also a score in [-1, 1]
-            (i.e. the expected value of the end game score from the current
-            player's perspective) for the current player.
-        c_puct: a number in (0, inf) that controls how quickly exploration
-            converges to the maximum-value policy. A higher value means
-            relying on the prior more.
-        '''
+     
         """
         policy_value_fn：一个接收板状态和输出的函数（动作，概率）元组列表以及[-1,1]中的分数
         （即来自当前的最终比赛得分的预期值玩家的观点）对于当前的玩家。
@@ -169,11 +134,7 @@ class MCTS(object):
         self._is_selfplay = is_selfplay
 
     def _playout(self, state):
-        '''
-        Run a single playout from the root to the leaf, getting a value at
-        the leaf and propagating it back through its parents.
-        State is modified in-place, so a copy must be provided.
-        '''
+    
         """从根到叶子运行单个播出，获取值
          叶子并通过它的父母传播回来。
          State已就地修改，因此必须提供副本。
@@ -218,11 +179,7 @@ class MCTS(object):
         # no rollout here
 
     def get_move_visits(self, state):
-        '''
-        Run all playouts sequentially and return the available actions and
-        their corresponding visiting times.
-        state: the current game state
-        '''
+ 
         """按顺序运行所有播出并返回可用的操作及其相应的概率。
         state: 当前游戏的状态
         temp: 介于(0,1]之间的临时参数控制探索的概率
@@ -240,10 +197,7 @@ class MCTS(object):
         return acts, visits
 
     def update_with_move(self, last_move):
-        '''
-        Step forward in the tree, keeping everything we already know
-        about the subtree.
-        '''
+ 
         """在当前的树上向前一步，保持我们已经知道的关于子树的一切.
         """
         if last_move in self._root._children:
@@ -262,10 +216,10 @@ class MCTSPlayer(object):
         '''
         init some parameters
         '''
-        self._is_selfplay = is_selfplay
-        self.policy_value_function = policy_value_function
-        self.action_fc = action_fc
-        self.evaluation_fc = evaluation_fc
+        self._is_selfplay = is_selfplay # 自我博弈
+        self.policy_value_function = policy_value_function # 策略价值函数，用于评估棋局状态的动作价值和策略概率
+        self.action_fc = action_fc # 用于生成可行动作
+        self.evaluation_fc = evaluation_fc # 用于评估棋局状态的胜负情况
         self.first_n_moves = 12
         # For the first n moves of each game, the temperature is set to τ = 1,
         # For the remainder of the game, an infinitesimal temperature is used, τ→ 0.
@@ -279,20 +233,19 @@ class MCTSPlayer(object):
 
     def set_player_ind(self, p):
         '''
-        set player index
+        设置玩家索引
         '''
         self.player = p
 
     def reset_player(self):
         '''
-        reset player
+        重置玩家状态
         '''
         self.mcts.update_with_move(-1)
 
     def get_action(self,board,is_selfplay,print_probs_value):
         '''
-        get an action by mcts
-        do not discard all the tree and retain the useful part
+        下一步
         '''
         sensible_moves = board.availables
         # 像alphaGo Zero论文一样使用MCTS算法返回的pi向量
