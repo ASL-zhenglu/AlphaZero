@@ -42,6 +42,7 @@ def run(start_player=0,is_shown=1): # 人和电脑打
     n = 5
     width, height = 11, 11
     model_file = 'model_11_11_5/best_policy.model'
+    # model_file = 'tmp/current_policy.model'
     p = os.getcwd()
     model_file = path.join(p,model_file) 
 

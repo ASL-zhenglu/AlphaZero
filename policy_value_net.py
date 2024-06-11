@@ -14,58 +14,60 @@ class PolicyValueNet():
         print('building network ...')
         print()
 
-        self.planes_num = 9 # feature planes
-        self.nb_block = block # resnet blocks
+        self.planes_num = 9  # 特征平面的数量 
+        self.nb_block = block  #  ResNet 块的数量
         if cuda == False:
-            # use GPU or not ,if there are a few GPUs,it's better to assign GPU ID
+            # 这些代码片段用于配置是否使用 GPU 加速
             os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
             os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
 
         self.board_width = board_width
         self.board_height = board_height
 
-        # Make a session
+        # 制造一个会话
         self.session = tf.InteractiveSession()
-        # 1. Input:
+        # 1. 输入
         self.input_states = tf.placeholder(
             tf.float32, shape=[None, self.planes_num, board_height, board_width])
+        #  (1, self.planes_num, board_height, board_width) 的四维张量
 
         self.action_fc_train, self.evaluation_fc2_train = self.network(input_states=self.input_states,
                      reuse=False,
                      is_train=True)
+        
         self.action_fc_test,self.evaluation_fc2_test = self.network(input_states=self.input_states,
                                                                     reuse=True,
                                                                     is_train=False)
 
         self.network_all_params = tf.global_variables()
 
-        # Define the Loss function
-        # 1. Label: the array containing if the game wins or not for each state
+        # 定义损失函数
+        # 1. Label
         self.labels = tf.placeholder(tf.float32, shape=[None, 1])
-        # 2. Predictions: the array containing the evaluation score of each state
+        # 2. Predictions: 包含评估时的状态
         # which is self.evaluation_fc2
-        # 3-1. Value Loss function
+        # 3-1. 价值损失函数
         self.value_loss = tf.losses.mean_squared_error(self.labels,
                                                        self.evaluation_fc2_train)
-        # 3-2. Policy Loss function
+        # 3-2. 策略损失函数
         self.mcts_probs = tf.placeholder(
             tf.float32, shape=[None, board_height * board_width])
         self.policy_loss = tf.negative(tf.reduce_mean(
             tf.reduce_sum(tf.multiply(self.mcts_probs, self.action_fc_train), 1)))
-        # 3-3. L2 penalty (regularization)
+        # 3-3. 使用 L2 正则化对模型的权重进行惩罚，用于防止过拟合
         l2_penalty_beta = 1e-4
         vars = tf.trainable_variables()
         l2_penalty = l2_penalty_beta * tf.add_n(
             [tf.nn.l2_loss(v) for v in vars if 'bias' not in v.name.lower()])
-        # 3-4 Add up to be the Loss function
+        # 3-4 损失相加
         self.loss = self.value_loss + self.policy_loss + l2_penalty
 
-        # Define the optimizer we use for training
+        # 定义优化器
         self.learning_rate = tf.placeholder(tf.float32)
         self.optimizer = tf.train.AdamOptimizer(
             learning_rate=self.learning_rate).minimize(self.loss)
 
-        # calc policy entropy, for monitoring only
+        # 计算策略熵
         self.entropy = tf.negative(tf.reduce_mean(
             tf.reduce_sum(tf.exp(self.action_fc_test) * self.action_fc_test, 1)))
 
@@ -73,7 +75,7 @@ class PolicyValueNet():
         self.network_params = tf.global_variables()
         # for transfer learning use
 
-        # For saving and restoring
+        # 参数和模型保存
         self.saver = tf.train.Saver()
 
         self.restore_params = []
@@ -96,7 +98,7 @@ class PolicyValueNet():
             print('can not find saved model, learn from scratch !')
         # self.print_params()
 
-        # opponent net for evaluating
+        # 评估对手
         self.action_fc_train_oppo, self.evaluation_fc2_train_oppo = self.network(input_states=self.input_states,
                      reuse=False,
                      is_train=True,label='_oppo')
@@ -107,9 +109,7 @@ class PolicyValueNet():
         self.network_oppo_all_params = tf.global_variables()[len(tf.global_variables())-len(self.network_all_params):]
 
     def save_numpy(self,params):
-        '''
-        save the model in numpy form
-        '''
+         
         print('saving model as numpy form ...')
         param = []
         for each in params:
@@ -118,9 +118,7 @@ class PolicyValueNet():
         np.save('tmp/model.npy',param)
 
     def load_numpy(self,params,path='tmp/model.npy'):
-        '''
-        load model from numpy
-        '''
+ 
         print('loading model from numpy form ...')
         mat = np.load(path)
         for ind, each in enumerate(params):
@@ -133,8 +131,8 @@ class PolicyValueNet():
 
     def policy_value(self, state_batch,actin_fc,evaluation_fc):
         '''
-        input: a batch of states,actin_fc,evaluation_fc
-        output: a batch of action probabilities and state values
+        input: state_batch，以及模型的行动输出actin_fc和评估输出evaluation_fc
+        output: 一批行动概率和状态值
         '''
         log_act_probs, value = self.session.run(
             [actin_fc, evaluation_fc],
@@ -145,13 +143,9 @@ class PolicyValueNet():
 
     def policy_value_fn(self, board,actin_fc,evaluation_fc):
         '''
-        input: board,actin_fc,evaluation_fc
-        output: a list of (action, probability) tuples for each available
-        action and the score of the board state
+        它接受一个游戏棋盘board以及模型的行动输出actin_fc和评估输出evaluation_fc作为输入，
+        并返回每个可用行动的（行动，概率）元组列表，以及当前棋盘状态的分数。
         '''
-        # the accurate policy value fn,
-        # i prefer to use one that has some randomness even when test,
-        # so that each game can play some different moves, all are ok here
         legal_positions = board.availables
         current_state = np.ascontiguousarray(board.current_state().reshape(
             -1, self.planes_num, self.board_width, self.board_height))
@@ -161,15 +155,10 @@ class PolicyValueNet():
 
     def policy_value_fn_random(self,board,actin_fc,evaluation_fc):
         '''
-        input: board,actin_fc,evaluation_fc
-        output: a list of (action, probability) tuples for each available
-        action and the score of the board state
+       policy_value_fn_random函数接受一个游戏棋盘和模型的行动输出以及评估输出作为输入，
+       通过应用随机的对称变换来增加样本多样性，
+       计算当前棋盘状态下每个可用行动的概率，并返回行动概率列表和状态值。
         '''
-        # like paper said,
-        # The leaf node sL is added to a queue for neural network
-        # evaluation, (di(p), v) = fθ(di(sL)),
-        # where di is a dihedral reflection or rotation
-        # selected uniformly at random from i in [1..8]
 
         legal_positions = board.availables
         current_state = np.ascontiguousarray(board.current_state().reshape(
@@ -200,7 +189,7 @@ class PolicyValueNet():
 
     def train_step(self, state_batch, mcts_probs, winner_batch, lr):
         '''
-        perform a training step
+        执行训练步骤
         '''
         winner_batch = np.reshape(winner_batch, (-1, 1))
         loss, entropy, _ = self.session.run(
@@ -212,21 +201,17 @@ class PolicyValueNet():
         return loss, entropy
 
     def save_model(self, model_path):
-        '''
-        save model with ckpt form
-        '''
+      
         # only save half, without the oppo net
         self.saver.save(self.session, model_path,write_meta_graph=False)
         # write_meta_graph=False
 
     def restore_model(self, model_path):
-        '''
-        restore model from ckpt
-        '''
+ 
         self.saver.restore(self.session, model_path)
 
     def network(self,input_states,reuse,is_train,label=''):
-        # Define the tensorflow neural network
+        # 定义神经网络
         with tf.variable_scope('model'+label, reuse=reuse):
             # tl.layers.set_name_reuse(reuse)
 
@@ -235,7 +220,6 @@ class PolicyValueNet():
             inputlayer = tl.layers.InputLayer(input_state, name='input')
 
             # 2. Common Networks Layers
-            # these layers designed by myself
             inputlayer = tl.layers.ZeroPad2d(inputlayer,2,name='zeropad2d')
             conv1 = tl.layers.Conv2d(inputlayer,
                                           n_filter=64,
@@ -248,7 +232,6 @@ class PolicyValueNet():
                                                       is_train=is_train,
                                                       nb_block=self.nb_block)
             # 3-1 Action Networks
-            # these layers are the same as paper's
             action_conv = tl.layers.Conv2d(residual_layer,
                                                 n_filter=2,
                                                 filter_size=(1,1),
@@ -259,13 +242,13 @@ class PolicyValueNet():
                                                         name='bn_1')
             action_conv_flat = tl.layers.FlattenLayer(action_conv,
                                                            name='flatten_layer_1')
-            # 3-2 Full connected layer,
-            # the output is the log probability of moves on each slot on the board
+            # 3-2 全连接层
+            # 输出是棋盘上每个槽位移动的对数概率
             action_fc = tl.layers.DenseLayer(action_conv_flat,
                                                   n_units=self.board_width*self.board_height,
                                                   act=tf.nn.log_softmax,name='dense_layer_1')
             # 4 Evaluation Networks
-            # these layers are the same as paper's
+         
             evaluation_conv = tl.layers.Conv2d(residual_layer,
                                                     n_filter=1,
                                                     filter_size=(1,1),
@@ -274,6 +257,7 @@ class PolicyValueNet():
                                                             act=tf.nn.relu,
                                                             is_train=is_train,
                                                             name='bn_2')
+            # 加速训练
             evaluation_conv_flat = tl.layers.FlattenLayer(evaluation_conv,
                                                                name='flatten_layer_2')
             evaluation_fc1 = tl.layers.DenseLayer(evaluation_conv_flat,
@@ -289,7 +273,7 @@ class PolicyValueNet():
 
     def residual_block(self,incoming, out_channels, is_train, nb_block=1):
         '''
-        a simple resnet block structure
+        残差块的结构
         '''
         resnet = incoming
         for i in range(nb_block):
@@ -305,13 +289,14 @@ class PolicyValueNet():
 
             resnet = tl.layers.ElementwiseLayer([resnet, identity], combine_fn=tf.add,
                                                 name='elementwise_layer_' + str(i))
+            # 相加   out += residual
             resnet = MyActLayer(resnet, act=tf.nn.relu, name='activation_layer_' + str(i))
 
         return resnet
 
 class MyActLayer(Layer):
     '''
-    define an activation layer
+    定义激活函数
     '''
     def __init__(
         self,

@@ -35,17 +35,17 @@ class GUI:
         text = font.render(message, True, (0, 0, 0))
         text_rect = text.get_rect(center=(self.screen.get_width() / 2, self.screen.get_height() / 2))
 
-        start_time = time.time()
-        display_time = 5  # 显示时间（秒）
+        # start_time = time.time()
+        # display_time = 5  # 显示时间（秒）
 
-        while time.time() - start_time < display_time:
-            for event in pygame.event.get():
-                if event.type == pygame.QUIT:  # 检测到退出事件时退出循环
-                    return
+        # while time.time() - start_time < display_time:
+        #     for event in pygame.event.get():
+        #         if event.type == pygame.QUIT:  # 检测到退出事件时退出循环
+        #             return
 
             # 在原本界面上绘制提示框
-            self.screen.blit(text, text_rect)
-            pygame.display.update(text_rect)  # 只更新提示框的区域，不覆盖其他部分
+        self.screen.blit(text, text_rect)
+        pygame.display.update(text_rect)  # 只更新提示框的区域，不覆盖其他部分
 
 
     def reset(self, bs): # bs： boardsize, 功能:重置棋盘
@@ -67,7 +67,7 @@ class GUI:
         # 左上角坐标，宽和高
 
     def restart_game(self, button_down=True): # 重启游戏
-       
+        
         self.round_counter += 1
         self._draw_static()
         if button_down:
@@ -245,24 +245,22 @@ class GUI:
         '''
         绘制棋盘的静态内容
         '''
-        
         self.screen.fill(self._background_color) # 背景填充颜色
-        
         board_lenth = self.UnitSize * self.BoardSize
         pygame.draw.rect(self.screen, self._board_color, self.areas['board']) # 画大框
         for i in range(self.BoardSize):
-            # draw grid lines
+            #
             start = self.UnitSize * (i + 0.5)
             pygame.draw.line(self.screen, (0, 0, 0), (start + self.UnitSize, self.UnitSize*1.5),
                              (start + self.UnitSize, board_lenth + self.UnitSize*0.5))
             pygame.draw.line(self.screen, (0, 0, 0), (self.UnitSize*1.5, start + self.UnitSize),
                              (board_lenth + self.UnitSize*0.5, start + self.UnitSize))
             pygame.draw.rect(self.screen, (0, 0, 0), (self.UnitSize, self.UnitSize, board_lenth, board_lenth), 1)
-            # coordinate values
+       
             # self._draw_text(self.BoardSize - i - 1, (self.UnitSize / 2, start + self.UnitSize), text_height=self.TestSize)  # 竖的
             # self._draw_text(i, (start + self.UnitSize, self.UnitSize / 2), text_height=self.TestSize)  # 横的
 
-        # draw buttons
+        # 绘制按钮
         for name in self.areas.keys():
             if name != 'board':
                 self._draw_button(name)
